@@ -7,12 +7,21 @@ import (
 	"app/model"
 	"app/repository"
 	"app/service"
+	"app/util"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var fieldMap = map[string]string{
+	"Identity": "身份",
+	"Password": "密碼",
+	"Names":    "姓名",
+	"Username": "用戶名",
+	"Email":    "電子郵件",
+}
 
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
@@ -71,9 +80,11 @@ func CreateUser(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "errors": err.Error()})
 	}
 
-	validate := validator.New()
+	validate := util.Validate
 	if err := validate.Struct(user); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "Invalid request body", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"errors": util.TranslateErrors(err.(validator.ValidationErrors), fieldMap),
+		})
 	}
 
 	hash, err := hashPassword(user.Password)
