@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"strconv"
 
 	"app/database"
 	"app/router"
@@ -24,10 +24,10 @@ import (
 // @host localhost:3000
 // @BasePath /api
 func main() {
-	bundle := i18n.NewBundle(language.English)
+	bundle := i18n.NewBundle(language.TraditionalChinese)
 
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-	bundle.MustLoadMessageFile("../lang/active.en.toml")
+	bundle.MustLoadMessageFile("lang/active.zh_tw.toml")
 
 	app := fiber.New(fiber.Config{
 		Prefork:       true,
@@ -37,64 +37,28 @@ func main() {
 	})
 
 	app.Get("/", func(c *fiber.Ctx) error {
+
 		lang := c.Query("lang")
 		accept := c.Get("Accept-Language")
-
 		localizer := i18n.NewLocalizer(bundle, lang, accept)
 
-		name := c.Query("name")
-		if name == "" {
-			name = "Bob"
-		}
+		// 簡單翻譯
+		hello, _ := localizer.Localize(&i18n.LocalizeConfig{
+			MessageID: "HelloWorld",
+		})
+		fmt.Println(hello) // 輸出：哈囉，世界
 
-		// Set title message.
-		helloPerson := localizer.MustLocalize(&i18n.LocalizeConfig{
-			DefaultMessage: &i18n.Message{
-				ID:    "HelloPerson",
-				Other: "Hello {{.Name}}",
-			},
+		// 變數替換
+		greeting, _ := localizer.Localize(&i18n.LocalizeConfig{
+			MessageID: "GreetingName",
 			TemplateData: map[string]string{
-				"Name": name,
+				"Name": "小明",
 			},
 		})
 
-		// Parse and set unread count of emails.
-		unreadEmailCount, _ := strconv.ParseInt(c.Query("unread"), 10, 64)
+		fmt.Println(greeting) // 輸出：哈囉，小明
 
-		// Set your own message for unread emails.
-		myUnreadEmails := localizer.MustLocalize(&i18n.LocalizeConfig{
-			DefaultMessage: &i18n.Message{
-				ID:          "MyUnreadEmails",
-				Description: "The number of unread emails I have",
-				One:         "I have {{.PluralCount}} unread email.",
-				Other:       "I have {{.PluralCount}} unread emails.",
-			},
-			PluralCount: unreadEmailCount,
-		})
-
-		// Set other personal message for unread emails.
-		personUnreadEmails := localizer.MustLocalize(&i18n.LocalizeConfig{
-			DefaultMessage: &i18n.Message{
-				ID:          "PersonUnreadEmails",
-				Description: "The number of unread emails a person has",
-				One:         "{{.Name}} has {{.UnreadEmailCount}} unread email.",
-				Other:       "{{.Name}} has {{.UnreadEmailCount}} unread emails.",
-			},
-			PluralCount: unreadEmailCount,
-			TemplateData: map[string]interface{}{
-				"Name":             name,
-				"UnreadEmailCount": unreadEmailCount,
-			},
-		})
-
-		// Return rendered template.
-		return c.Render("index", fiber.Map{
-			"Title": helloPerson,
-			"Paragraphs": []string{
-				myUnreadEmails,
-				personUnreadEmails,
-			},
-		})
+		return c.SendString(hello)
 	})
 
 	// app.Use(cors.New())

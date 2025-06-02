@@ -1,0 +1,9 @@
+[HelloWorld]
+description = "HelloWorld"
+one = "哈囉，世界"
+other = "哈囉，世界"
+
+[GreetingName]
+description = "GreetingName"
+one = "你好，{{.Name}}"
+other = "你好，{{.Name}}"

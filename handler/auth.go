@@ -1,116 +1,81 @@
 package handler
 
 import (
-	"errors"
-	"log"
-	"net/mail"
 	"time"
 
-	"app/config"
-	"app/database"
-	"app/model"
+	"app/service"
+	"app/util"
 
-	"gorm.io/gorm"
-
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
 )
 
-// CheckPasswordHash compare password with hash
-func CheckPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	log.Println(hash, "haaaash")
-	return err == nil
+type AuthHandler struct {
+	userService service.IUserService
 }
 
-func getUserByEmail(e string) (*model.User, error) {
-	db := database.DB
-	var user model.User
-	if err := db.Where(&model.User{Email: e}).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &user, nil
+func NewAuthHandler(userService service.IUserService) *AuthHandler {
+	return &AuthHandler{userService}
 }
 
-func getUserByUsername(u string) (*model.User, error) {
-	db := database.DB
-	var user model.User
-	if err := db.Where(&model.User{Username: u}).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &user, nil
-}
-
-func valid(email string) bool {
-	_, err := mail.ParseAddress(email)
-	return err == nil
-}
-
-// Login get user and password
-func Login(c *fiber.Ctx) error {
+func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	type LoginInput struct {
-		Identity string `json:"identity"`
-		Password string `json:"password"`
+		Username string `json:"username" validate:"required,min=3,max=20"`
+		Password string `json:"password" validate:"required,min=6"`
 	}
-	type UserData struct {
-		ID       uint   `json:"id"`
-		Username string `json:"username"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
+
 	input := new(LoginInput)
-	var ud UserData
 
 	if err := c.BodyParser(input); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "Error on login request", "errors": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "輸入資料錯誤"})
 	}
 
-	identity := input.Identity
-	pass := input.Password
-	userModel, err := new(model.User), *new(error)
-
-	if valid(identity) {
-		userModel, err = getUserByEmail(identity)
-	} else {
-		userModel, err = getUserByUsername(identity)
+	if err := util.Validate.Struct(input); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(util.TranslateErrors(err.(validator.ValidationErrors), map[string]string{
+			"Username": "使用者名稱",
+			"Password": "密碼",
+		}))
 	}
+
+	username := input.Username
+	password := input.Password
+
+	user, err := h.userService.GetUserByUsername(username)
 
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Internal Server Error", "data": err})
-	} else if userModel == nil {
-		CheckPasswordHash(pass, "")
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"status": "error", "message": "Invalid identity or password", "data": err})
-	} else {
-		ud = UserData{
-			ID:       userModel.ID,
-			Username: userModel.Username,
-			Email:    userModel.Email,
-			Password: userModel.Password,
-		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "資料庫錯誤", "errors": err.Error()})
 	}
 
-	if !CheckPasswordHash(pass, ud.Password) {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"status": "error", "message": "Invalid identity or password", "data": nil})
+	if !util.CheckPasswordHash(password, user.Password) {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "密碼錯誤"})
 	}
 
-	token := jwt.New(jwt.SigningMethodHS256)
+	accessToken, err := util.GenerateAccessJWT(user)
 
-	claims := token.Claims.(jwt.MapClaims)
-	claims["username"] = ud.Username
-	claims["user_id"] = ud.ID
-	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
-
-	t, err := token.SignedString([]byte(config.Config("SECRET")))
 	if err != nil {
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 
-	return c.JSON(fiber.Map{"status": "success", "message": "Success login", "data": t})
+	refreshTokoen, err := util.GenerateRefreshJWT(user)
+
+	if err != nil {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshTokoen,
+		Expires:  time.Now().Add(72 * time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Lax",
+	})
+
+	return c.JSON(fiber.Map{"success": true, "message": "登入成功", "data": fiber.Map{
+		"access_token": accessToken,
+	}})
+}
+
+func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
+	return c.SendString("test")
 }

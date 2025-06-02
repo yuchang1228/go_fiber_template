@@ -2,11 +2,18 @@ package router
 
 import (
 	"app/handler"
+	"app/repository"
+	"app/service"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func AuthRouter(api fiber.Router) {
+	userRepository := repository.NewUserRepository()
+	userService := service.NewUserService(userRepository)
+	userHandler := handler.NewAuthHandler(userService)
+
 	auth := api.Group("/auth")
-	auth.Post("/login", handler.Login)
+	auth.Post("/login", userHandler.Login)
+	auth.Post("/refresh", userHandler.RefreshToken)
 }
