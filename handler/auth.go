@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"time"
 
 	"app/service"
@@ -77,5 +78,19 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
-	return c.SendString("test")
+	refreshToken := c.Cookies("refresh_token")
+
+	if refreshToken == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "請提供有效的 refresh token"})
+	}
+
+	user, err := util.ParseRefreshJWT(refreshToken)
+
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "無效的 refresh token"})
+	}
+
+	fmt.Println(user["ID"])
+
+	return c.SendString(refreshToken)
 }

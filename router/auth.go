@@ -11,9 +11,9 @@ import (
 func AuthRouter(api fiber.Router) {
 	userRepository := repository.NewUserRepository()
 	userService := service.NewUserService(userRepository)
-	userHandler := handler.NewAuthHandler(userService)
+	authHandler := handler.NewAuthHandler(userService)
 
 	auth := api.Group("/auth")
-	auth.Post("/login", userHandler.Login)
-	auth.Post("/refresh", userHandler.RefreshToken)
+	auth.Post("/login", authHandler.Login)
+	auth.Post("/refresh", authHandler.RefreshToken)
 }

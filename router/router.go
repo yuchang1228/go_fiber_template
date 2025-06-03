@@ -17,5 +17,5 @@ func SetupRoutes(app *fiber.App) {
 	AuthRouter(api)
 
 	// User
-	// UserRouter(api)
+	UserRouter(api)
 }

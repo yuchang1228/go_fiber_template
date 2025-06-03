@@ -1,179 +1,138 @@
 package handler
 
-// import (
-// 	"strconv"
+import (
+	"app/model"
+	"app/service"
+	"app/util"
 
-// 	"app/database"
-// 	"app/model"
-// 	"app/repository"
-// 	"app/service"
-// 	"app/util"
+	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
+)
 
-// 	"github.com/go-playground/validator/v10"
-// 	"github.com/gofiber/fiber/v2"
-// 	"github.com/golang-jwt/jwt/v5"
-// 	"golang.org/x/crypto/bcrypt"
-// )
+var fieldMap = map[string]string{
+	"Identity": "身份",
+	"Password": "密碼",
+	"Names":    "姓名",
+	"Username": "用戶名",
+	"Email":    "電子郵件",
+}
 
-// var fieldMap = map[string]string{
-// 	"Identity": "身份",
-// 	"Password": "密碼",
-// 	"Names":    "姓名",
-// 	"Username": "用戶名",
-// 	"Email":    "電子郵件",
-// }
+type UserHandler struct {
+	userService service.IUserService
+}
 
-// func hashPassword(password string) (string, error) {
-// 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-// 	return string(bytes), err
-// }
+func NewUserHandler(userService service.IUserService) *UserHandler {
+	return &UserHandler{userService}
+}
 
-// func validToken(t *jwt.Token, id string) bool {
-// 	n, err := strconv.Atoi(id)
-// 	if err != nil {
-// 		return false
-// 	}
+// GetUser get all user
+func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
+	users, err := h.userService.GetAllUsers()
 
-// 	claims := t.Claims.(jwt.MapClaims)
-// 	uid := int(claims["user_id"].(float64))
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
 
-// 	return uid == n
-// }
+	return c.JSON(users)
+}
 
-// func validUser(id string, p string) bool {
-// 	db := database.DB
-// 	var user model.User
-// 	db.First(&user, id)
-// 	if user.Username == "" {
-// 		return false
-// 	}
-// 	if !CheckPasswordHash(p, user.Password) {
-// 		return false
-// 	}
-// 	return true
-// }
+// GetUser get a user
+func (h *UserHandler) GetUser(c *fiber.Ctx) error {
+	id := c.Params("id")
 
-// // GetUser get a user
-// func GetUser(c *fiber.Ctx) error {
-// 	id := c.Params("id")
-// 	userRep := repository.NewUserRepository()
-// 	userSer := service.NewUserService(*userRep)
+	user, err := h.userService.GetUserByID(id)
 
-// 	user, err := userSer.GetUserByID(id)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't get user", "errors": err.Error()})
+	}
 
-// 	if err != nil {
-// 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't get user", "errors": err.Error()})
-// 	}
+	return c.JSON(fiber.Map{"status": "success", "message": "User found", "data": user})
+}
 
-// 	return c.JSON(fiber.Map{"status": "success", "message": "User found", "data": user})
-// }
+// CreateUser new user
+func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
+	type NewUser struct {
+		Username string `json:"username"`
+		Email    string `json:"email"`
+	}
 
-// // CreateUser new user
-// func CreateUser(c *fiber.Ctx) error {
-// 	type NewUser struct {
-// 		Username string `json:"username"`
-// 		Email    string `json:"email"`
-// 	}
+	user := new(model.User)
+	if err := c.BodyParser(user); err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "errors": err.Error()})
+	}
 
-// 	user := new(model.User)
-// 	if err := c.BodyParser(user); err != nil {
-// 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "errors": err.Error()})
-// 	}
+	validate := util.Validate
+	if err := validate.Struct(user); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"errors": util.TranslateErrors(err.(validator.ValidationErrors), fieldMap),
+		})
+	}
 
-// 	validate := util.Validate
-// 	if err := validate.Struct(user); err != nil {
-// 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-// 			"errors": util.TranslateErrors(err.(validator.ValidationErrors), fieldMap),
-// 		})
-// 	}
+	hash, err := util.HashPassword(user.Password)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't hash password", "errors": err.Error()})
+	}
 
-// 	hash, err := hashPassword(user.Password)
-// 	if err != nil {
-// 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't hash password", "errors": err.Error()})
-// 	}
+	user.Password = hash
 
-// 	user.Password = hash
+	err = h.userService.CreateUser(user)
 
-// 	userRep := repository.NewUserRepository()
-// 	userSer := service.NewUserService(*userRep)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't create user", "errors": err.Error()})
+	}
 
-// 	err = userSer.CreateUser(user)
+	newUser := NewUser{
+		Email:    user.Email,
+		Username: user.Username,
+	}
 
-// 	if err != nil {
-// 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't create user", "errors": err.Error()})
-// 	}
+	return c.JSON(fiber.Map{"status": "success", "message": "Created user", "data": newUser})
+}
 
-// 	newUser := NewUser{
-// 		Email:    user.Email,
-// 		Username: user.Username,
-// 	}
+// UpdateUser update user
+func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
+	type UpdateUserInput struct {
+		Names string `json:"names"`
+	}
+	var uui UpdateUserInput
+	if err := c.BodyParser(&uui); err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "errors": err.Error()})
+	}
+	id := c.Params("id")
 
-// 	return c.JSON(fiber.Map{"status": "success", "message": "Created user", "data": newUser})
-// }
+	user, err := h.userService.GetUserByID(id)
 
-// // UpdateUser update user
-// func UpdateUser(c *fiber.Ctx) error {
-// 	type UpdateUserInput struct {
-// 		Names string `json:"names"`
-// 	}
-// 	var uui UpdateUserInput
-// 	if err := c.BodyParser(&uui); err != nil {
-// 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "errors": err.Error()})
-// 	}
-// 	id := c.Params("id")
-// 	token := c.Locals("user").(*jwt.Token)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't get user", "errors": err.Error()})
+	}
 
-// 	if !validToken(token, id) {
-// 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Invalid token id", "data": nil})
-// 	}
+	user.Names = uui.Names
 
-// 	userRep := repository.NewUserRepository()
-// 	userSer := service.NewUserService(*userRep)
+	err = h.userService.UpdateUser(user)
 
-// 	user, err := userSer.GetUserByID(id)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't update user", "errors": err.Error()})
+	}
 
-// 	if err != nil {
-// 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't get user", "errors": err.Error()})
-// 	}
+	return c.JSON(fiber.Map{"status": "success", "message": "User successfully updated", "data": user})
+}
 
-// 	user.Names = uui.Names
+// DeleteUser delete user
+func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
+	type PasswordInput struct {
+		Password string `json:"password"`
+	}
+	var pi PasswordInput
+	if err := c.BodyParser(&pi); err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "errors": err.Error()})
+	}
+	id := c.Params("id")
 
-// 	err = userSer.UpdateUser(user)
+	err := h.userService.DeleteUser(id)
 
-// 	if err != nil {
-// 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't update user", "errors": err.Error()})
-// 	}
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't delete user", "errors": err.Error()})
+	}
 
-// 	return c.JSON(fiber.Map{"status": "success", "message": "User successfully updated", "data": user})
-// }
-
-// // DeleteUser delete user
-// func DeleteUser(c *fiber.Ctx) error {
-// 	type PasswordInput struct {
-// 		Password string `json:"password"`
-// 	}
-// 	var pi PasswordInput
-// 	if err := c.BodyParser(&pi); err != nil {
-// 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "errors": err.Error()})
-// 	}
-// 	id := c.Params("id")
-// 	token := c.Locals("user").(*jwt.Token)
-
-// 	if !validToken(token, id) {
-// 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Invalid token id", "data": nil})
-// 	}
-
-// 	if !validUser(id, pi.Password) {
-// 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Not valid user", "data": nil})
-// 	}
-
-// 	userRep := repository.NewUserRepository()
-// 	userSer := service.NewUserService(*userRep)
-// 	err := userSer.DeleteUser(id)
-
-// 	if err != nil {
-// 		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't delete user", "errors": err.Error()})
-// 	}
-
-// 	return c.JSON(fiber.Map{"status": "success", "message": "User successfully deleted", "data": nil})
-// }
+	return c.JSON(fiber.Map{"status": "success", "message": "User successfully deleted", "data": nil})
+}
