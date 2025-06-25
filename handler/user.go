@@ -2,20 +2,14 @@ package handler
 
 import (
 	"app/model"
+	"app/request"
+	"app/response"
 	"app/service"
 	"app/util"
+	"strconv"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
-
-var fieldMap = map[string]string{
-	"Identity": "身份",
-	"Password": "密碼",
-	"Names":    "姓名",
-	"Username": "用戶名",
-	"Email":    "電子郵件",
-}
 
 type UserHandler struct {
 	userService service.IUserService
@@ -25,114 +19,222 @@ func NewUserHandler(userService service.IUserService) *UserHandler {
 	return &UserHandler{userService}
 }
 
-// GetUser get all user
+type CreateUserRequest struct {
+	// 使用者名稱
+	Username string `json:"username" validate:"required"`
+
+	// 電子郵件
+	Email string `json:"email" validate:"required"`
+
+	// 密碼
+	Password string `json:"password" validate:"required"`
+
+	// 姓名
+	Names string `json:"names"`
+}
+
+type UpdateUserRequest struct {
+	// 姓名
+	Names string `json:"names" validate:"required"`
+}
+
+type User struct {
+	// 使用者名稱
+	Username string `json:"username"`
+
+	// 電子郵件
+	Email string `json:"email"`
+
+	// 密碼
+	Password string `json:"password"`
+
+	// 姓名
+	Names string `json:"names"`
+}
+
+// @Summary 取得所有使用者
+// @Description 取得所有使用者
+// @Tags user
+// @Accept json
+// @Success 200 {object} response.SuccessResponseHTTP{data=[]response.UserResponse}
+// @Failure 500 {object} response.ErrorResponseHTTP{}
+// @Router /user [get]
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
-	users, err := h.userService.GetAllUsers()
+	users, err := h.userService.GetAll()
 
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	return c.JSON(users)
-}
-
-// GetUser get a user
-func (h *UserHandler) GetUser(c *fiber.Ctx) error {
-	id := c.Params("id")
-
-	user, err := h.userService.GetUserByID(id)
-
-	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't get user", "errors": err.Error()})
-	}
-
-	return c.JSON(fiber.Map{"status": "success", "message": "User found", "data": user})
-}
-
-// CreateUser new user
-func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
-	type NewUser struct {
-		Username string `json:"username"`
-		Email    string `json:"email"`
-	}
-
-	user := new(model.User)
-	if err := c.BodyParser(user); err != nil {
-		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "errors": err.Error()})
-	}
-
-	validate := util.Validate
-	if err := validate.Struct(user); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"errors": util.TranslateErrors(err.(validator.ValidationErrors), fieldMap),
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"msg":     []string{"資料庫錯誤: " + util.GormErrorToMessage(err)},
 		})
 	}
 
-	hash, err := util.HashPassword(user.Password)
-	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't hash password", "errors": err.Error()})
+	var result []response.UserResponse
+
+	for _, user := range *users {
+		result = append(result, response.UserResponse{
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			Names:     user.Names,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+		})
 	}
 
-	user.Password = hash
-
-	err = h.userService.CreateUser(user)
-
-	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't create user", "errors": err.Error()})
-	}
-
-	newUser := NewUser{
-		Email:    user.Email,
-		Username: user.Username,
-	}
-
-	return c.JSON(fiber.Map{"status": "success", "message": "Created user", "data": newUser})
+	return c.Status(fiber.StatusOK).JSON(response.NewSuccessRes(result))
 }
 
-// UpdateUser update user
+// @Summary 取得使用者透過ID
+// @Description 取得使用者透過ID
+// @Tags user
+// @Param id path string true "ID"
+// @Success 200 {object} response.SuccessResponseHTTP{data=response.UserResponse}
+// @Failure 500 {object} response.ErrorResponseHTTP{}
+// @Router /user/{id} [get]
+func (h *UserHandler) GetUser(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	idUint, err := strconv.ParseUint(id, 10, 0)
+
+	if err != nil {
+		return response.NewErrorRes(fiber.StatusBadRequest, []string{"URL 參數格式錯誤"})
+	}
+
+	user, err := h.userService.GetByID(uint(idUint))
+
+	if err != nil {
+		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + util.GormErrorToMessage(err)})
+	}
+
+	return c.JSON(response.NewSuccessRes(response.UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Names:     user.Names,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}))
+}
+
+// @Summary 新增使用者
+// @Description 新增使用者
+// @Tags user
+// @Accept x-www-form-urlencoded
+// @Param username formData string true "使用者名稱"
+// @Param email formData string true "電子郵件"
+// @Param password formData string true "密碼"
+// @Param names formData string false "姓名"
+// @Success 200 {object} response.SuccessResponseHTTP{data=response.UserResponse}
+// @Success 400 {object} response.ErrorResponseHTTP{}
+// @Failure 500 {object} response.ErrorResponseHTTP{}
+// @Router /user [post]
+func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
+	input := new(request.CreateUser)
+	if err := c.BodyParser(input); err != nil {
+		return response.NewErrorRes(fiber.StatusBadRequest, []string{"資料格式錯誤"})
+	}
+
+	v := util.NewValidator(map[string]string{
+		"Username": "使用者名稱",
+		"Email":    "電子郵件",
+		"Password": "密碼",
+		"Names":    "姓名",
+	})
+
+	if err := v.ValidateStruct(input); err != nil {
+		return response.NewErrorRes(fiber.StatusBadRequest, err)
+	}
+
+	hash, err := util.HashPassword(input.Password)
+
+	if err != nil {
+		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"密碼加密失敗"})
+	}
+
+	user := model.User{
+		Username: input.Username,
+		Email:    input.Email,
+		Password: hash,
+		Names:    input.Names,
+	}
+
+	if err := h.userService.Create(&user); err != nil {
+		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + util.GormErrorToMessage(err)})
+	}
+
+	return c.JSON(response.NewSuccessRes(response.UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Names:     user.Names,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}))
+}
+
+// @Summary 編輯使用者
+// @Description 編輯使用者
+// @Tags user
+// @Accept x-www-form-urlencoded
+// @Param id path string true "ID"
+// @Param names formData string false "姓名"
+// @Success 200 {object} response.SuccessResponseHTTP{data=response.UserResponse}
+// @Success 400 {object} response.ErrorResponseHTTP{}
+// @Failure 500 {object} response.ErrorResponseHTTP{}
+// @Router /user/{id} [patch]
 func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
-	type UpdateUserInput struct {
-		Names string `json:"names"`
+	var input request.UpdateUser
+
+	if err := c.BodyParser(&input); err != nil {
+		return response.NewErrorRes(fiber.StatusBadRequest, []string{"資料格式錯誤"})
 	}
-	var uui UpdateUserInput
-	if err := c.BodyParser(&uui); err != nil {
-		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "errors": err.Error()})
-	}
+
 	id := c.Params("id")
 
-	user, err := h.userService.GetUserByID(id)
+	idUint, err := strconv.ParseUint(id, 10, 0)
 
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't get user", "errors": err.Error()})
+		return response.NewErrorRes(fiber.StatusBadRequest, []string{"URL 參數格式錯誤"})
 	}
 
-	user.Names = uui.Names
-
-	err = h.userService.UpdateUser(user)
+	user, err := h.userService.GetByID(uint(idUint))
 
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't update user", "errors": err.Error()})
+		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + util.GormErrorToMessage(err)})
 	}
 
-	return c.JSON(fiber.Map{"status": "success", "message": "User successfully updated", "data": user})
+	user.Names = input.Names
+
+	err = h.userService.Update(user)
+
+	if err != nil {
+		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + util.GormErrorToMessage(err)})
+	}
+
+	return c.JSON(response.NewSuccessRes(user))
 }
 
-// DeleteUser delete user
+// @Summary 刪除使用者
+// @Description 刪除使用者
+// @Tags user
+// @Param id path string true "User ID"
+// @Success 200 {object} response.SuccessResponseHTTP{data=nil}
+// @Success 400 {object} response.ErrorResponseHTTP{}
+// @Failure 500 {object} response.ErrorResponseHTTP{}
+// @Router /user/{id} [delete]
 func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
-	type PasswordInput struct {
-		Password string `json:"password"`
-	}
-	var pi PasswordInput
-	if err := c.BodyParser(&pi); err != nil {
-		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Review your input", "errors": err.Error()})
-	}
 	id := c.Params("id")
 
-	err := h.userService.DeleteUser(id)
+	idUint, err := strconv.ParseUint(id, 10, 0)
 
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Couldn't delete user", "errors": err.Error()})
+		return response.NewErrorRes(fiber.StatusBadRequest, []string{"URL 參數格式錯誤"})
 	}
 
-	return c.JSON(fiber.Map{"status": "success", "message": "User successfully deleted", "data": nil})
+	if err := h.userService.Delete(uint(idUint)); err != nil {
+		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + util.GormErrorToMessage(err)})
+	}
+
+	return c.JSON(response.NewSuccessRes(nil))
 }

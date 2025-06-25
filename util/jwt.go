@@ -2,8 +2,7 @@ package util
 
 import (
 	"app/config"
-	"app/model"
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -12,22 +11,22 @@ import (
 var accessSecretKey = []byte(config.Config("ACCESS_JWT_SECRET"))
 var refreshSecretKey = []byte(config.Config("REFRESH_JWT_SECRET"))
 
-func GenerateAccessJWT(user *model.User) (string, error) {
+func GenerateAccessJWT(userID uint, username string, email string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"ID":       user.ID,
-		"username": user.Username,
-		"email":    user.Email,
+		"ID":       userID,
+		"username": username,
+		"email":    email,
 		"exp":      time.Now().Add(time.Hour * 1).Unix(),
 	})
 
 	return token.SignedString(accessSecretKey)
 }
 
-func GenerateRefreshJWT(user *model.User) (string, error) {
+func GenerateRefreshJWT(userID uint, username string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"ID":       user.ID,
-		"username": user.Username,
+		"ID":       userID,
+		"username": username,
 		"exp":      time.Now().Add(time.Hour * 72).Unix(),
 	})
 
@@ -45,31 +44,29 @@ func ParseAccessJWT(tokenString string) (jwt.MapClaims, error) {
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 
-	if ok {
-		fmt.Println(claims)
-	} else {
-		fmt.Println(err)
+	if !ok {
+		return nil, errors.New("access token 解析失敗")
 	}
 
 	return claims, err
 }
 
-func ParseRefreshJWT(tokenString string) (jwt.MapClaims, error) {
+func ParseRefreshJWT(tokenString string) (uint, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return refreshSecretKey, nil
 	})
 
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 
-	if ok {
-		fmt.Println(claims)
-	} else {
-		fmt.Println(err)
+	if !ok {
+		return 0, errors.New("refresh token 解析失敗")
 	}
 
-	return claims, err
+	userID := uint(claims["ID"].(float64))
+
+	return userID, err
 }

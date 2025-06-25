@@ -6,53 +6,39 @@ import (
 )
 
 type IUserService interface {
-	CreateUser(user *model.User) error
-	GetUserByID(id string) (*model.User, error)
-	GetAllUsers() (*[]model.User, error)
-	UpdateUser(user *model.User) error
-	DeleteUser(id string) error
-	GetUserByUsername(username string) (*model.User, error)
+	Create(user *model.User) error
+	GetByID(id uint) (*model.User, error)
+	GetAll() (*[]model.User, error)
+	Update(user *model.User) error
+	Delete(id uint) error
 }
 
 type userService struct {
-	userRepository *repository.UserRepository
+	userRepository repository.IUserRepository
 }
 
 func NewUserService(
-	userRepository *repository.UserRepository,
+	userRepository repository.IUserRepository,
 ) IUserService {
-	return &userService{
-		userRepository,
-	}
+	return &userService{userRepository}
 }
 
-func (s *userService) CreateUser(user *model.User) error {
+func (s *userService) Create(user *model.User) error {
 	return s.userRepository.Create(user)
 }
 
-func (s *userService) GetUserByID(id string) (*model.User, error) {
+func (s *userService) GetByID(id uint) (*model.User, error) {
 	return s.userRepository.GetByID(id)
 }
 
-func (s *userService) GetAllUsers() (*[]model.User, error) {
+func (s *userService) GetAll() (*[]model.User, error) {
 	return s.userRepository.GetAll()
 }
 
-func (s *userService) UpdateUser(user *model.User) error {
+func (s *userService) Update(user *model.User) error {
 	return s.userRepository.Update(user)
 }
 
-func (s *userService) DeleteUser(id string) error {
+func (s *userService) Delete(id uint) error {
 	return s.userRepository.Delete(id)
-}
-
-func (s *userService) GetUserByUsername(username string) (*model.User, error) {
-	user, err := s.userRepository.GetByUserName(username)
-	if err != nil {
-		return nil, err
-	}
-	if user == nil {
-		return nil, nil
-	}
-	return user, nil
 }

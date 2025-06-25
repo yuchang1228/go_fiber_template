@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"app/database"
+	"app/middleware"
 	"app/router"
-	"app/util"
 
 	_ "app/docs"
 
@@ -21,7 +21,7 @@ import (
 // @title Fiber Example API
 // @version 1.0
 // @description This is a sample swagger for Fiber
-// @host localhost:3000
+// @host localhost:9000
 // @BasePath /api
 func main() {
 	bundle := i18n.NewBundle(language.TraditionalChinese)
@@ -34,10 +34,10 @@ func main() {
 		CaseSensitive: true,
 		ServerHeader:  "Fiber",
 		AppName:       "App Name",
+		ErrorHandler:  middleware.ErrorHandler,
 	})
 
 	app.Get("/", func(c *fiber.Ctx) error {
-
 		lang := c.Query("lang")
 		accept := c.Get("Accept-Language")
 		localizer := i18n.NewLocalizer(bundle, lang, accept)
@@ -64,10 +64,10 @@ func main() {
 	// app.Use(cors.New())
 
 	database.ConnectDB()
-	util.ValidateStruct()
 
 	app.Get("/swagger/*", swagger.HandlerDefault) // default
 
 	router.SetupRoutes(app)
+
 	log.Fatal(app.Listen(":3000"))
 }

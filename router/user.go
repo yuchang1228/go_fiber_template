@@ -1,8 +1,8 @@
 package router
 
 import (
+	"app/database"
 	"app/handler"
-	"app/middleware"
 	"app/repository"
 	"app/service"
 
@@ -10,14 +10,14 @@ import (
 )
 
 func UserRouter(api fiber.Router) {
-	userRepository := repository.NewUserRepository()
+	userRepository := repository.NewUserRepository(database.DB)
 	userService := service.NewUserService(userRepository)
 	userHandler := handler.NewUserHandler(userService)
 
 	user := api.Group("/user")
-	user.Get("/", userHandler.GetUsers) // Get all users
+	user.Get("/", userHandler.GetUsers)
 	user.Get("/:id", userHandler.GetUser)
 	user.Post("/", userHandler.CreateUser)
-	user.Patch("/:id", middleware.Protected(), userHandler.UpdateUser)
-	user.Delete("/:id", middleware.Protected(), userHandler.DeleteUser)
+	user.Patch("/:id", userHandler.UpdateUser)
+	user.Delete("/:id", userHandler.DeleteUser)
 }

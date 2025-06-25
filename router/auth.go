@@ -1,6 +1,7 @@
 package router
 
 import (
+	"app/database"
 	"app/handler"
 	"app/repository"
 	"app/service"
@@ -9,9 +10,9 @@ import (
 )
 
 func AuthRouter(api fiber.Router) {
-	userRepository := repository.NewUserRepository()
-	userService := service.NewUserService(userRepository)
-	authHandler := handler.NewAuthHandler(userService)
+	userRepository := repository.NewUserRepository(database.DB)
+	authService := service.NewAuthService(userRepository)
+	authHandler := handler.NewAuthHandler(authService)
 
 	auth := api.Group("/auth")
 	auth.Post("/login", authHandler.Login)

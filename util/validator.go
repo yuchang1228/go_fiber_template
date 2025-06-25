@@ -1,33 +1,51 @@
 package util
 
 import (
+	"reflect"
+
 	"github.com/go-playground/locales/zh_Hant_TW"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	translations "github.com/go-playground/validator/v10/translations/zh_tw"
 )
 
-var (
-	Validate *validator.Validate
-	trans    ut.Translator
-)
-
-func ValidateStruct() {
-
-	zhTw := zh_Hant_TW.New()
-	uni := ut.New(zhTw, zhTw)
-	trans, _ = uni.GetTranslator("zh_tw")
-
-	Validate = validator.New()
-
-	translations.RegisterDefaultTranslations(Validate, trans)
+type Validator struct {
+	validate   *validator.Validate
+	translator ut.Translator
 }
 
-func TranslateErrors(errs validator.ValidationErrors, fieldMap map[string]string) map[string]string {
-	translatedErrors := make(map[string]string)
-	for _, err := range errs {
-		translatedError := err.Translate(trans)
-		translatedErrors[err.Field()] = translatedError
+func NewValidator(fieldMap map[string]string) *Validator {
+	zhTw := zh_Hant_TW.New()
+	uni := ut.New(zhTw, zhTw)
+	trans, _ := uni.GetTranslator("zh_tw")
+
+	v := validator.New()
+
+	translations.RegisterDefaultTranslations(v, trans)
+
+	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		if name, ok := fieldMap[fld.Name]; ok {
+			return name
+		}
+		return fld.Name
+	})
+
+	return &Validator{
+		validate:   v,
+		translator: trans,
 	}
-	return translatedErrors
+}
+
+func (v *Validator) ValidateStruct(s interface{}) []string {
+	err := v.validate.Struct(s)
+	if err == nil {
+		return nil
+	}
+
+	errs := err.(validator.ValidationErrors)
+	var messages []string
+	for _, e := range errs {
+		messages = append(messages, e.Translate(v.translator))
+	}
+	return messages
 }

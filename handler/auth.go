@@ -1,96 +1,93 @@
 package handler
 
 import (
-	"fmt"
 	"time"
 
+	"app/request"
+	"app/response"
 	"app/service"
 	"app/util"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
 type AuthHandler struct {
-	userService service.IUserService
+	authService service.IAuthService
 }
 
-func NewAuthHandler(userService service.IUserService) *AuthHandler {
-	return &AuthHandler{userService}
+func NewAuthHandler(authService service.IAuthService) *AuthHandler {
+	return &AuthHandler{authService}
 }
 
+// @Summary 登入
+// @Description 登入
+// @Tags auth
+// @Accept x-www-form-urlencoded
+// @Param username formData string true "使用者名稱"
+// @Param password formData string true "密碼"
+// @Success 200 {object} response.SuccessResponseHTTP{data=response.TokenResponse}
+// @Failure 400 {object} response.ErrorResponseHTTP{}
+// @Failure 401 {object} response.ErrorResponseHTTP{}
+// @Failure 500 {object} response.ErrorResponseHTTP{}
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
-	type LoginInput struct {
-		Username string `json:"username" validate:"required,min=3,max=20"`
-		Password string `json:"password" validate:"required,min=6"`
-	}
 
-	input := new(LoginInput)
+	input := new(request.Login)
 
 	if err := c.BodyParser(input); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "輸入資料錯誤"})
+		return response.NewErrorRes(fiber.StatusBadRequest, []string{"輸入資料錯誤"})
 	}
 
-	if err := util.Validate.Struct(input); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(util.TranslateErrors(err.(validator.ValidationErrors), map[string]string{
-			"Username": "使用者名稱",
-			"Password": "密碼",
-		}))
+	v := util.NewValidator(map[string]string{
+		"Username": "使用者名稱",
+		"Password": "密碼",
+	})
+
+	if err := v.ValidateStruct(input); err != nil {
+		return response.NewErrorRes(fiber.StatusBadRequest, err)
 	}
 
-	username := input.Username
-	password := input.Password
-
-	user, err := h.userService.GetUserByUsername(username)
+	accessToken, refreshToken, err := h.authService.Login(input)
 
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "message": "資料庫錯誤", "errors": err.Error()})
-	}
-
-	if !util.CheckPasswordHash(password, user.Password) {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "密碼錯誤"})
-	}
-
-	accessToken, err := util.GenerateAccessJWT(user)
-
-	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
-
-	refreshTokoen, err := util.GenerateRefreshJWT(user)
-
-	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
+		return err
 	}
 
 	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshTokoen,
+		Name:     "refreshToken",
+		Value:    refreshToken,
 		Expires:  time.Now().Add(72 * time.Hour),
 		HTTPOnly: true,
 		Secure:   true,
 		SameSite: "Lax",
 	})
 
-	return c.JSON(fiber.Map{"success": true, "message": "登入成功", "data": fiber.Map{
-		"access_token": accessToken,
-	}})
+	return c.JSON(response.NewSuccessRes(response.TokenResponse{
+		AccessToken: accessToken,
+	}))
 }
 
+// @Summary 刷新 access token
+// @Description 刷新 access token
+// @Tags auth
+// @Success 200 {object} response.SuccessResponseHTTP{data=response.TokenResponse}
+// @Failure 401 {object} response.ErrorResponseHTTP{}
+// @Failure 500 {object} response.ErrorResponseHTTP{}
+// @Router /auth/refresh [post]
 func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
-	refreshToken := c.Cookies("refresh_token")
+	refreshToken := c.Cookies("refreshToken")
 
 	if refreshToken == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "請提供有效的 refresh token"})
+		return response.NewErrorRes(fiber.StatusUnauthorized, []string{"請提供有效的 refresh token"})
 	}
 
-	user, err := util.ParseRefreshJWT(refreshToken)
+	accessToken, err := h.authService.RefreshToken(refreshToken)
 
 	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "無效的 refresh token"})
+		return err
 	}
 
-	fmt.Println(user["ID"])
-
-	return c.SendString(refreshToken)
+	return c.JSON(response.NewSuccessRes(response.TokenResponse{
+		AccessToken: accessToken,
+	}))
 }

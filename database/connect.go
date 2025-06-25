@@ -27,7 +27,7 @@ func ConnectDB() {
 		config.Config("DB_PASSWORD"),
 		config.Config("DB_NAME"),
 	)
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
 	if err != nil {
 		panic("failed to connect database")
 	}
