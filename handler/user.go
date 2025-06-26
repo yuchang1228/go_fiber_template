@@ -57,8 +57,10 @@ type User struct {
 // @Tags user
 // @Accept json
 // @Success 200 {object} response.SuccessResponseHTTP{data=[]response.UserResponse}
+// @Failure 401 {object} response.ErrorResponseHTTP{}
 // @Failure 500 {object} response.ErrorResponseHTTP{}
 // @Router /user [get]
+// @Security Bearer
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 	users, err := h.userService.GetAll()
 
@@ -90,8 +92,10 @@ func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 // @Tags user
 // @Param id path string true "ID"
 // @Success 200 {object} response.SuccessResponseHTTP{data=response.UserResponse}
+// @Failure 401 {object} response.ErrorResponseHTTP{}
 // @Failure 500 {object} response.ErrorResponseHTTP{}
 // @Router /user/{id} [get]
+// @Security Bearer
 func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -129,18 +133,16 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 // @Success 400 {object} response.ErrorResponseHTTP{}
 // @Failure 500 {object} response.ErrorResponseHTTP{}
 // @Router /user [post]
+// @Security Bearer
 func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 	input := new(request.CreateUser)
 	if err := c.BodyParser(input); err != nil {
 		return response.NewErrorRes(fiber.StatusBadRequest, []string{"資料格式錯誤"})
 	}
 
-	v := util.NewValidator(map[string]string{
-		"Username": "使用者名稱",
-		"Email":    "電子郵件",
-		"Password": "密碼",
-		"Names":    "姓名",
-	})
+	lang := c.Get("Accept-Language")
+
+	v := util.NewValidator(lang)
 
 	if err := v.ValidateStruct(input); err != nil {
 		return response.NewErrorRes(fiber.StatusBadRequest, err)
@@ -181,14 +183,12 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 // @Param names formData string false "姓名"
 // @Success 200 {object} response.SuccessResponseHTTP{data=response.UserResponse}
 // @Success 400 {object} response.ErrorResponseHTTP{}
+// @Failure 401 {object} response.ErrorResponseHTTP{}
 // @Failure 500 {object} response.ErrorResponseHTTP{}
 // @Router /user/{id} [patch]
+// @Security Bearer
 func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	var input request.UpdateUser
-
-	if err := c.BodyParser(&input); err != nil {
-		return response.NewErrorRes(fiber.StatusBadRequest, []string{"資料格式錯誤"})
-	}
 
 	id := c.Params("id")
 
@@ -196,6 +196,18 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 
 	if err != nil {
 		return response.NewErrorRes(fiber.StatusBadRequest, []string{"URL 參數格式錯誤"})
+	}
+
+	if err := c.BodyParser(&input); err != nil {
+		return response.NewErrorRes(fiber.StatusBadRequest, []string{"資料格式錯誤"})
+	}
+
+	lang := c.Get("Accept-Language")
+
+	v := util.NewValidator(lang)
+
+	if err := v.ValidateStruct(input); err != nil {
+		return response.NewErrorRes(fiber.StatusBadRequest, err)
 	}
 
 	user, err := h.userService.GetByID(uint(idUint))
@@ -221,8 +233,10 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 // @Param id path string true "User ID"
 // @Success 200 {object} response.SuccessResponseHTTP{data=nil}
 // @Success 400 {object} response.ErrorResponseHTTP{}
+// @Failure 401 {object} response.ErrorResponseHTTP{}
 // @Failure 500 {object} response.ErrorResponseHTTP{}
 // @Router /user/{id} [delete]
+// @Security Bearer
 func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 

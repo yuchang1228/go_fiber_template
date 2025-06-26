@@ -3,10 +3,12 @@ package util
 import (
 	"reflect"
 
+	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/zh_Hant_TW"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
-	translations "github.com/go-playground/validator/v10/translations/zh_tw"
+	en_translations "github.com/go-playground/validator/v10/translations/en"
+	zh_tw_translations "github.com/go-playground/validator/v10/translations/zh_tw"
 )
 
 type Validator struct {
@@ -14,24 +16,41 @@ type Validator struct {
 	translator ut.Translator
 }
 
-func NewValidator(fieldMap map[string]string) *Validator {
+var uni *ut.UniversalTranslator
+
+func initValidator() {
+	en := en.New()
 	zhTw := zh_Hant_TW.New()
-	uni := ut.New(zhTw, zhTw)
-	trans, _ := uni.GetTranslator("zh_tw")
 
-	v := validator.New()
+	uni = ut.New(zhTw, zhTw, en)
+}
 
-	translations.RegisterDefaultTranslations(v, trans)
+// 建立 Validator 實例
+func NewValidator(lang string, fieldMap ...map[string]string) *Validator {
+	initValidator()
 
-	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
-		if name, ok := fieldMap[fld.Name]; ok {
+	trans, _ := uni.GetTranslator(lang)
+
+	validate := validator.New()
+
+	registerTranslations(validate, lang, trans)
+
+	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		if len(fieldMap) > 0 {
+			if name, ok := fieldMap[0][fld.Name]; ok {
+				return name
+			}
+		}
+
+		if name, err := Localize(lang, fld.Name); err == nil {
 			return name
 		}
+
 		return fld.Name
 	})
 
 	return &Validator{
-		validate:   v,
+		validate:   validate,
 		translator: trans,
 	}
 }
@@ -48,4 +67,15 @@ func (v *Validator) ValidateStruct(s interface{}) []string {
 		messages = append(messages, e.Translate(v.translator))
 	}
 	return messages
+}
+
+func registerTranslations(validate *validator.Validate, lang string, trans ut.Translator) {
+	switch lang {
+	case "en":
+		en_translations.RegisterDefaultTranslations(validate, trans)
+	case "zh_tw":
+		zh_tw_translations.RegisterDefaultTranslations(validate, trans)
+	default:
+		zh_tw_translations.RegisterDefaultTranslations(validate, trans)
+	}
 }

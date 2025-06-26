@@ -38,10 +38,9 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return response.NewErrorRes(fiber.StatusBadRequest, []string{"輸入資料錯誤"})
 	}
 
-	v := util.NewValidator(map[string]string{
-		"Username": "使用者名稱",
-		"Password": "密碼",
-	})
+	lang := c.Get("Accept-Language")
+
+	v := util.NewValidator(lang)
 
 	if err := v.ValidateStruct(input); err != nil {
 		return response.NewErrorRes(fiber.StatusBadRequest, err)

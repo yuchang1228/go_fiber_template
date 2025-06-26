@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// GormErrorToMessage 將 GORM 錯誤轉換為中文
+// 將 GORM 錯誤轉換為中文
 func GormErrorToMessage(err error) string {
 	switch {
 	case errors.Is(err, gorm.ErrRecordNotFound):

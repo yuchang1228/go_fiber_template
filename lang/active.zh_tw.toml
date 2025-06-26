@@ -1,9 +1,11 @@
-[HelloWorld]
-description = "HelloWorld"
-one = "哈囉，世界"
-other = "哈囉，世界"
+[Username]
+translation = "使用者名稱"
 
-[GreetingName]
-description = "GreetingName"
-one = "你好，{{.Name}}"
-other = "你好，{{.Name}}"
+[Email]
+translation = "電子郵件"
+
+[Password]
+translation = "密碼"
+
+[Name]
+translation = "姓名"
