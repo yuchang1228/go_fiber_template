@@ -14,19 +14,24 @@
     cd recipes/auth-docker-postgres-jwt
     ```
 
-2. Set the environment variables in a `.env` file:
-    ```env
-    DB_PORT=5432
-    DB_USER=example_user
-    DB_PASSWORD=example_password
-    DB_NAME=example_db
-    SECRET=example_secret
-    ```
-
-3. Build and start the Docker containers:
+2. Build Docker iamge:
     ```bash
-    docker-compose build
-    docker-compose up
+    docker build -t go-fiber:latest .
     ```
 
-The API and the database should now be running.
+3. Init swagger docs:
+    ```bash
+    docker run --rm \
+        -v "$(pwd):/usr/src/some-api" \
+        -w /usr/src/some-api \
+        go-fiber:latest \
+        swag init -g cmd/main.go -q
+    ```
+4. Start container
+    ```bash
+    docker-compose up -d
+    ```
+
+5. Check health
+
+    [http://localhost:9000/api/health](http://localhost:9000/api/health)

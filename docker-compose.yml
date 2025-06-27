@@ -1,19 +1,19 @@
 version: '3.8'
 services:
-  web:
-    build: .
+  app:
+    image: go-fiber:latest
     env_file:
       - .env
     ports:
-      - 9000:3000
+      - 9000:${FIBER_PORT}
     volumes:
       - .:/usr/src/some-api
     command: air cmd/main.go -b 0.0.0.0
     depends_on:
-      - db
+      - postgres
     networks:
       - fiber
-  db:
+  postgres:
     image: postgres:alpine
     environment:
       - POSTGRES_USER=${DB_USER}
