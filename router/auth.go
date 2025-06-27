@@ -10,7 +10,7 @@ import (
 )
 
 func AuthRouter(api fiber.Router) {
-	userRepository := repository.NewUserRepository(database.DB)
+	userRepository := repository.NewUserRepository(database.GORM_DB)
 	authService := service.NewAuthService(userRepository)
 	authHandler := handler.NewAuthHandler(authService)
 

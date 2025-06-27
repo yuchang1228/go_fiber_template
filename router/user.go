@@ -11,7 +11,7 @@ import (
 )
 
 func UserRouter(api fiber.Router) {
-	userRepository := repository.NewUserRepository(database.DB)
+	userRepository := repository.NewUserRepository(database.GORM_DB)
 	userService := service.NewUserService(userRepository)
 	userHandler := handler.NewUserHandler(userService)
 

@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
+	"app/config"
 	"app/database"
 	"app/middleware"
 	"app/router"
 	"app/util"
 
+	_ "app/database/migrations"
 	_ "app/docs"
 
 	"github.com/gofiber/fiber/v2"
@@ -35,6 +38,7 @@ func main() {
 	// app.Use(cors.New())
 
 	database.ConnectDB()
+	database.Migrate()
 
 	// i18n 初始化
 	util.InitBundle()
@@ -43,5 +47,5 @@ func main() {
 
 	router.SetupRoutes(app)
 
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(app.Listen(fmt.Sprintf(":%s", config.Config("FIBER_PORT"))))
 }

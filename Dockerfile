@@ -10,7 +10,7 @@ COPY go.mod ./
 RUN go mod download && go mod verify
 COPY . .
 
-# Run and expose the server on port 3000
-EXPOSE 3000
+# Run and expose the server on port 80
+EXPOSE 80
 
 # CMD [ "nodemon", "build/app.js" ]
