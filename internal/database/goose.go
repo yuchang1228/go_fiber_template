@@ -12,7 +12,7 @@ func Migrate() {
 		panic(err)
 	}
 
-	if err := goose.Up(SQL_DB, "database/migrations"); err != nil {
+	if err := goose.Up(SQL_DB, "internal/database/migrations"); err != nil {
 		panic(err)
 	}
 }

@@ -1,8 +1,8 @@
 package service
 
 import (
-	"app/model"
-	"app/repository"
+	"app/internal/model"
+	"app/internal/repository"
 )
 
 type IUserService interface {

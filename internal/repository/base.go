@@ -1,8 +1,6 @@
 package repository
 
-import (
-	"app/database"
-)
+import "app/internal/database"
 
 type IRepository[T any] interface {
 	Create(model *T) error

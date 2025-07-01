@@ -1,12 +1,11 @@
 package handler
 
 import (
+	"app/internal/request"
+	"app/internal/response"
+	"app/internal/service"
+	"app/pkg/validator"
 	"time"
-
-	"app/request"
-	"app/response"
-	"app/service"
-	"app/util"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -40,7 +39,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	lang := c.Get("Accept-Language")
 
-	v := util.NewValidator(lang)
+	v := validator.NewValidator(lang)
 
 	if err := v.ValidateStruct(input); err != nil {
 		return response.NewErrorRes(fiber.StatusBadRequest, err)

@@ -1,8 +1,8 @@
 package test
 
 import (
-	"app/model"
-	"app/service"
+	"app/internal/model"
+	"app/internal/service"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

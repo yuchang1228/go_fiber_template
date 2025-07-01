@@ -1,6 +1,7 @@
-package util
+package validator
 
 import (
+	"app/pkg/i18n"
 	"reflect"
 
 	"github.com/go-playground/locales/en"
@@ -42,7 +43,7 @@ func NewValidator(lang string, fieldMap ...map[string]string) *Validator {
 			}
 		}
 
-		if name, err := Localize(lang, fld.Name); err == nil {
+		if name, err := i18n.Localize(lang, fld.Name); err == nil {
 			return name
 		}
 

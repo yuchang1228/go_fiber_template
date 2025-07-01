@@ -1,11 +1,13 @@
 package handler
 
 import (
-	"app/model"
-	"app/request"
-	"app/response"
-	"app/service"
-	"app/util"
+	"app/internal/model"
+	"app/internal/request"
+	"app/internal/response"
+	"app/internal/service"
+	"app/pkg/bcrypt"
+	"app/pkg/gorm"
+	"app/pkg/validator"
 	"net/url"
 	"strconv"
 
@@ -69,7 +71,7 @@ func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
-			"msg":     []string{"資料庫錯誤: " + util.GormErrorToMessage(err)},
+			"msg":     []string{"資料庫錯誤: " + gorm.GormErrorToMessage(err)},
 		})
 	}
 
@@ -110,7 +112,7 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	user, err := h.userService.GetByID(uint(idUint))
 
 	if err != nil {
-		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + util.GormErrorToMessage(err)})
+		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + gorm.GormErrorToMessage(err)})
 	}
 
 	return c.JSON(response.NewSuccessRes(response.UserResponse{
@@ -144,13 +146,13 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 
 	lang := c.Get("Accept-Language")
 
-	v := util.NewValidator(lang)
+	v := validator.NewValidator(lang)
 
 	if err := v.ValidateStruct(input); err != nil {
 		return response.NewErrorRes(fiber.StatusBadRequest, err)
 	}
 
-	hash, err := util.HashPassword(input.Password)
+	hash, err := bcrypt.HashPassword(input.Password)
 
 	if err != nil {
 		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"密碼加密失敗"})
@@ -164,7 +166,7 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 	}
 
 	if err := h.userService.Create(&user); err != nil {
-		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + util.GormErrorToMessage(err)})
+		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + gorm.GormErrorToMessage(err)})
 	}
 
 	return c.JSON(response.NewSuccessRes(response.UserResponse{
@@ -206,7 +208,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 
 	lang := c.Get("Accept-Language")
 
-	v := util.NewValidator(lang)
+	v := validator.NewValidator(lang)
 
 	if err := v.ValidateStruct(input); err != nil {
 		return response.NewErrorRes(fiber.StatusBadRequest, err)
@@ -215,7 +217,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	user, err := h.userService.GetByID(uint(idUint))
 
 	if err != nil {
-		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + util.GormErrorToMessage(err)})
+		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + gorm.GormErrorToMessage(err)})
 	}
 
 	user.Names = input.Names
@@ -223,7 +225,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	err = h.userService.Update(user)
 
 	if err != nil {
-		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + util.GormErrorToMessage(err)})
+		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + gorm.GormErrorToMessage(err)})
 	}
 
 	return c.JSON(response.NewSuccessRes(user))
@@ -249,7 +251,7 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	}
 
 	if err := h.userService.Delete(uint(idUint)); err != nil {
-		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + util.GormErrorToMessage(err)})
+		return response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + gorm.GormErrorToMessage(err)})
 	}
 
 	return c.JSON(response.NewSuccessRes(nil))

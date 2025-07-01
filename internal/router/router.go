@@ -1,7 +1,7 @@
 package router
 
 import (
-	"app/handler"
+	"app/internal/handler"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"

@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"app/config"
-	"app/response"
+	"app/internal/response"
 
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"

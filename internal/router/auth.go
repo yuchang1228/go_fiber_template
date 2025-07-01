@@ -1,10 +1,10 @@
 package router
 
 import (
-	"app/database"
-	"app/handler"
-	"app/repository"
-	"app/service"
+	"app/internal/database"
+	"app/internal/handler"
+	"app/internal/repository"
+	"app/internal/service"
 
 	"github.com/gofiber/fiber/v2"
 )

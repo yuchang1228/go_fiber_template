@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"app/response"
+	"app/internal/response"
 	"errors"
 
 	"github.com/gofiber/fiber/v2"

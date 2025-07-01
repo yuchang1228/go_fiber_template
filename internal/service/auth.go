@@ -1,10 +1,12 @@
 package service
 
 import (
-	"app/repository"
-	"app/request"
-	"app/response"
-	"app/util"
+	"app/internal/repository"
+	"app/internal/request"
+	"app/internal/response"
+	"app/pkg/bcrypt"
+	"app/pkg/gorm"
+	"app/pkg/jwt"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -28,20 +30,20 @@ func (s *authService) Login(input *request.Login) (string, string, *response.HTT
 	user, err := s.userRepository.GetByUserName(input.Username)
 
 	if err != nil {
-		return "", "", response.NewErrorRes(fiber.StatusInternalServerError, []string{util.GormErrorToMessage(err)})
+		return "", "", response.NewErrorRes(fiber.StatusInternalServerError, []string{gorm.GormErrorToMessage(err)})
 	}
 
-	if !util.CheckPasswordHash(input.Password, user.Password) {
+	if !bcrypt.CheckPasswordHash(input.Password, user.Password) {
 		return "", "", response.NewErrorRes(fiber.StatusUnauthorized, []string{"使用者名稱或密碼錯誤"})
 	}
 
-	accessToken, err := util.GenerateAccessJWT(user.ID, user.Username, user.Email)
+	accessToken, err := jwt.GenerateAccessJWT(user.ID, user.Username, user.Email)
 
 	if err != nil {
 		return "", "", response.NewErrorRes(fiber.StatusInternalServerError, []string{"access token 生成失敗"})
 	}
 
-	refreshTokoen, err := util.GenerateRefreshJWT(user.ID, user.Username)
+	refreshTokoen, err := jwt.GenerateRefreshJWT(user.ID, user.Username)
 
 	if err != nil {
 		return "", "", response.NewErrorRes(fiber.StatusInternalServerError, []string{"refresh token 生成失敗"})
@@ -51,7 +53,7 @@ func (s *authService) Login(input *request.Login) (string, string, *response.HTT
 }
 
 func (s *authService) RefreshToken(refreshToken string) (string, *response.HTTPError) {
-	userID, err := util.ParseRefreshJWT(refreshToken)
+	userID, err := jwt.ParseRefreshJWT(refreshToken)
 
 	if err != nil {
 		return "", response.NewErrorRes(fiber.StatusUnauthorized, []string{"refresh token 解析失敗"})
@@ -60,10 +62,10 @@ func (s *authService) RefreshToken(refreshToken string) (string, *response.HTTPE
 	user, err := s.userRepository.GetByID(userID)
 
 	if err != nil {
-		return "", response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + util.GormErrorToMessage(err)})
+		return "", response.NewErrorRes(fiber.StatusInternalServerError, []string{"資料庫錯誤: " + gorm.GormErrorToMessage(err)})
 	}
 
-	accessToken, err := util.GenerateAccessJWT(user.ID, user.Username, user.Email)
+	accessToken, err := jwt.GenerateAccessJWT(user.ID, user.Username, user.Email)
 
 	if err != nil {
 		return "", response.NewErrorRes(fiber.StatusInternalServerError, []string{"access token 生成失敗"})

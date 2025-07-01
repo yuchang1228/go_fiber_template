@@ -1,8 +1,8 @@
 package migrations
 
 import (
-	"app/database"
-	"app/model"
+	"app/internal/database"
+	"app/internal/model"
 	"context"
 	"database/sql"
 

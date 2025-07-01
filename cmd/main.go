@@ -5,14 +5,14 @@ import (
 	"log"
 
 	"app/config"
-	"app/database"
-	"app/job"
-	"app/middleware"
-	"app/router"
-	"app/util"
+	"app/pkg/i18n"
 
-	_ "app/database/migrations"
 	_ "app/docs"
+	"app/internal/database"
+	_ "app/internal/database/migrations"
+	"app/internal/job"
+	"app/internal/middleware"
+	"app/internal/router"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger"
@@ -46,7 +46,7 @@ func main() {
 	defer job.Channel.Close()
 
 	// i18n 初始化
-	util.InitBundle()
+	i18n.InitBundle()
 
 	app.Get("/swagger/*", swagger.HandlerDefault) // default
 

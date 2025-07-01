@@ -1,9 +1,9 @@
 package service
 
 import (
-	"app/model"
-	"app/repository"
-	"app/response"
+	"app/internal/model"
+	"app/internal/repository"
+	"app/internal/response"
 	"bytes"
 	"strconv"
 
