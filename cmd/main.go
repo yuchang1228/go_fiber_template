@@ -6,6 +6,7 @@ import (
 
 	"app/config"
 	"app/database"
+	"app/job"
 	"app/middleware"
 	"app/router"
 	"app/util"
@@ -39,6 +40,10 @@ func main() {
 
 	database.ConnectDB()
 	database.Migrate()
+
+	job.InitRabbitMQ()
+	defer job.Conn.Close()
+	defer job.Channel.Close()
 
 	// i18n 初始化
 	util.InitBundle()

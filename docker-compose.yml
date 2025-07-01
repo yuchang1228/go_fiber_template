@@ -25,7 +25,13 @@ services:
       - postgres-db:/var/lib/postgresql/data
     networks:
       - fiber
-
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+        - '${RABBITMQ_PORT:-5672}:5672'
+        - '15672:15672'
+    networks:
+        - fiber
 volumes:
   postgres-db:
 

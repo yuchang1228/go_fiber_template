@@ -3,7 +3,6 @@ package router
 import (
 	"app/database"
 	"app/handler"
-	"app/middleware"
 	"app/repository"
 	"app/service"
 
@@ -13,9 +12,11 @@ import (
 func UserRouter(api fiber.Router) {
 	userRepository := repository.NewUserRepository(database.GORM_DB)
 	userService := service.NewUserService(userRepository)
-	userHandler := handler.NewUserHandler(userService)
+	userReportService := service.NewUserReportService(userRepository)
+	userHandler := handler.NewUserHandler(userService, userReportService)
 
-	user := api.Group("/user", middleware.Protected())
+	user := api.Group("/user")
+	user.Get("/report", userHandler.UserReport)
 	user.Get("/", userHandler.GetUsers)
 	user.Get("/:id", userHandler.GetUser)
 	user.Post("/", userHandler.CreateUser)

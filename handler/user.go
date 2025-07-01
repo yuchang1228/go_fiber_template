@@ -6,17 +6,19 @@ import (
 	"app/response"
 	"app/service"
 	"app/util"
+	"net/url"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 type UserHandler struct {
-	userService service.IUserService
+	userService       service.IUserService
+	userReportService service.IUserReportService
 }
 
-func NewUserHandler(userService service.IUserService) *UserHandler {
-	return &UserHandler{userService}
+func NewUserHandler(userService service.IUserService, userReportService service.IUserReportService) *UserHandler {
+	return &UserHandler{userService, userReportService}
 }
 
 type CreateUserRequest struct {
@@ -251,4 +253,32 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(response.NewSuccessRes(nil))
+}
+
+// @Summary 匯出使用者報表
+// @Description 匯出使用者報表
+// @Tags user
+// @Success 200 {object} response.SuccessResponseHTTP{data=nil}
+// @Failure 401 {object} response.ErrorResponseHTTP{}
+// @Failure 500 {object} response.ErrorResponseHTTP{}
+// @Router /user/report [get]
+// @Security Bearer
+func (h *UserHandler) UserReport(c *fiber.Ctx) error {
+	users, err := h.userService.GetAll()
+
+	if err != nil {
+		return err
+	}
+
+	data, err := h.userReportService.GenerateExcel(users)
+
+	if err != nil {
+		return err
+	}
+
+	filename := "用戶清單.xlsx"
+	encodedFilename := url.QueryEscape(filename)
+	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Set("Content-Disposition", `attachment; filename="fallback.xlsx"; filename*=UTF-8''`+encodedFilename)
+	return c.Send(data)
 }
