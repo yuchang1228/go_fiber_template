@@ -2,7 +2,12 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"io"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/gofiber/fiber/v2/log"
 
 	"app/config"
 	"app/pkg/i18n"
@@ -10,12 +15,12 @@ import (
 	_ "app/docs"
 	"app/internal/database"
 	_ "app/internal/database/migrations"
-	"app/internal/job"
 	"app/internal/middleware"
 	"app/internal/router"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger"
+	"github.com/pressly/goose/v3"
 	// "github.com/gofiber/fiber/v2/middleware/cors"
 )
 
@@ -28,6 +33,19 @@ import (
 // @in header
 // @name Authorization
 func main() {
+	loc, _ := time.LoadLocation(config.Config("TIMEZONE"))
+	time.Local = loc
+
+	logDir := "log"
+	logFile := "fiber.log"
+	logPath := filepath.Join(logDir, logFile)
+
+	_ = os.MkdirAll(logDir, os.ModePerm)
+
+	file, _ := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	iw := io.MultiWriter(os.Stdout, file)
+	log.SetOutput(iw)
+
 	app := fiber.New(fiber.Config{
 		Prefork:       true,
 		CaseSensitive: true,
@@ -38,12 +56,9 @@ func main() {
 
 	// app.Use(cors.New())
 
+	goose.SetLogger(goose.NopLogger())
 	database.ConnectDB()
 	database.Migrate()
-
-	job.InitRabbitMQ()
-	defer job.Conn.Close()
-	defer job.Channel.Close()
 
 	// i18n 初始化
 	i18n.InitBundle()

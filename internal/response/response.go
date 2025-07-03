@@ -9,10 +9,10 @@ type SuccessResponseHTTP struct {
 	// 狀態
 	Success bool `json:"success"`
 
-	Data interface{} `json:"data"`
+	Data any `json:"data"`
 } // @name SuccessResponseHTTP
 
-func NewSuccessRes(data interface{}) *SuccessResponseHTTP {
+func NewSuccessRes(data any) *SuccessResponseHTTP {
 	return &SuccessResponseHTTP{
 		Success: true,
 		Data:    data,

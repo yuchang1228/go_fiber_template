@@ -56,7 +56,7 @@ func NewValidator(lang string, fieldMap ...map[string]string) *Validator {
 	}
 }
 
-func (v *Validator) ValidateStruct(s interface{}) []string {
+func (v *Validator) ValidateStruct(s any) []string {
 	err := v.validate.Struct(s)
 	if err == nil {
 		return nil

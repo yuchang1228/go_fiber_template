@@ -37,7 +37,7 @@ func GenerateRefreshJWT(userID uint, username string) (string, error) {
 
 // 解析 Access Token
 func ParseRefreshJWT(tokenString string) (uint, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return refreshSecretKey, nil
 	})
 

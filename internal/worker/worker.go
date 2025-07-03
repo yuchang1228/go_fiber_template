@@ -2,19 +2,39 @@ package main
 
 import (
 	"app/config"
+	"app/internal/job"
 	"fmt"
+	"io"
 	"log"
+	"os"
+	"path/filepath"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-var Conn *amqp.Connection
-var Channel *amqp.Channel
+var jobRegistry = map[string]func([]byte) error{
+	"Test":       job.Test,
+	"HelloWorld": job.HelloWorld,
+}
+
+var conn *amqp.Connection
+var channel *amqp.Channel
+var f *os.File
 
 func failOnError(err error, msg string) {
 	if err != nil {
 		log.Panicf("%s: %s", msg, err)
 	}
+}
+
+func initLogging() {
+	logDir := "log"
+	logFile := "worker.log"
+	logPath := filepath.Join(logDir, logFile)
+
+	file, _ := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	iw := io.MultiWriter(os.Stdout, file)
+	log.SetOutput(iw)
 }
 
 func initRabbitMQ() {
@@ -28,19 +48,33 @@ func initRabbitMQ() {
 	)
 	var err error
 
-	Conn, err = amqp.Dial(dsn)
+	conn, err = amqp.Dial(dsn)
 	failOnError(err, "Failed to connect to RabbitMQ")
 
-	Channel, err = Conn.Channel()
+	channel, err = conn.Channel()
 	failOnError(err, "Failed to open a channel")
 }
 
 func main() {
-	initRabbitMQ()
-	defer Conn.Close()
-	defer Channel.Close()
+	initLogging()
+	defer f.Close()
 
-	q, err := Channel.QueueDeclare(
+	initRabbitMQ()
+	defer conn.Close()
+	defer channel.Close()
+
+	err := channel.ExchangeDeclare(
+		"jobs",   // exchange
+		"direct", // type
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	failOnError(err, "Failed to declare an exchange")
+
+	q, err := channel.QueueDeclare(
 		"task_queue", // name
 		true,         // durable
 		false,        // delete when unused
@@ -50,14 +84,14 @@ func main() {
 	)
 	failOnError(err, "Failed to declare a queue")
 
-	err = Channel.Qos(
+	err = channel.Qos(
 		1,     // prefetch count
 		0,     // prefetch size
 		false, // global
 	)
 	failOnError(err, "Failed to set QoS")
 
-	msgs, err := Channel.Consume(
+	msgs, err := channel.Consume(
 		q.Name, // queue
 		"",     // consumer
 		false,  // auto-ack
@@ -68,16 +102,27 @@ func main() {
 	)
 	failOnError(err, "Failed to register a consumer")
 
-	var forever chan struct{}
-
 	go func() {
 		for d := range msgs {
-			log.Printf("Received a message: %s", d.Body)
-			log.Printf("Done")
-			d.Ack(false)
+			fmt.Printf("🟢 Received job [%s]: %s\n", d.RoutingKey, d.Body)
+
+			if handler, ok := jobRegistry[d.RoutingKey]; ok {
+				err := handler(d.Body)
+				if err != nil {
+					log.Printf("Job %s failed: %v\n", d.RoutingKey, err)
+					d.Nack(false, false) // Reject the message and do not requeue
+				}
+				log.Printf("Received a message: %s", d.Body)
+				log.Printf("Done")
+				d.Ack(false)
+			} else {
+				log.Println("Unknown job action:", d.RoutingKey)
+				d.Nack(false, false) // Reject the message and do not requeue
+			}
 		}
 	}()
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
-	<-forever
+
+	select {}
 }
