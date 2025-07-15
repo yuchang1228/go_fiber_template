@@ -10,19 +10,22 @@ services:
       - .:/usr/src/some-api
     command: air cmd/main.go -b 0.0.0.0
     depends_on:
-      - postgres
+      - mysql
     networks:
       - fiber
-  postgres:
-    image: postgres:alpine
+  mysql:
+    image: mysql
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+      MYSQL_ROOT_HOST: '%'
+      MYSQL_DATABASE: '${DB_DATABASE}'
+      MYSQL_USER: '${DB_USERNAME}'
+      MYSQL_PASSWORD: '${DB_PASSWORD}'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
     ports:
-      - ${DB_PORT}:${DB_PORT}
+      - ${DB_PORT:-3306}:${DB_PORT}
     volumes:
-      - postgres-db:/var/lib/postgresql/data
+      - mysql-db:/var/lib/mysql
     networks:
       - fiber
   rabbitmq:
@@ -32,9 +35,50 @@ services:
         - '15672:15672'
     networks:
         - fiber
+  elasticsearch:
+    image: elasticsearch:9.0.2
+    volumes:
+      - ./resource/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,Z
+      - elasticsearch:/usr/share/elasticsearch/data:Z
+    environment:
+      - discovery.type=single-node
+    networks:
+      - elk
+    ports:
+      - '${ELASTICSEARCH_PORT:-9200}:9200'
+  logstash:
+    image: logstash:9.0.2
+    volumes:
+      - ./resource/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro,Z
+    ports:
+      - '${LOGSTASH_PORT:-5044}:5044'
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+  kibana:
+    image: kibana:9.0.2
+    ports:
+      - '${KIBANA_PORT:-5601}:5601'
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+  filebeat:
+    image: elastic/filebeat:9.0.3
+    volumes:
+      - ./resource/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
+      - ./logs/:/logs/:Z
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
 volumes:
-  postgres-db:
+  mysql-db:
+  elasticsearch:
 
 networks:
   fiber:
+    driver: bridge
+  elk:
     driver: bridge

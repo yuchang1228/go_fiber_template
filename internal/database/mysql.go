@@ -8,7 +8,7 @@ import (
 	"app/config"
 
 	"github.com/gofiber/fiber/v2/log"
-	"gorm.io/driver/postgres"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -25,16 +25,15 @@ func ConnectDB() {
 	}
 
 	dsn := fmt.Sprintf(
-		"postgres://%s:%s@%s:%d/%s?sslmode=disable&TimeZone=%s",
+		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		config.Config("DB_USER"),
 		config.Config("DB_PASSWORD"),
 		config.Config("DB_HOST"),
 		port,
-		config.Config("DB_NAME"),
-		config.Config("TIMEZONE"),
+		config.Config("DB_DATABASE"),
 	)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{TranslateError: true})
 
 	if err != nil {
 		panic("failed to connect database")
