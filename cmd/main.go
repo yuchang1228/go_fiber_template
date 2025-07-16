@@ -69,7 +69,7 @@ func main() {
 	// app.Use(cors.New())
 
 	goose.SetLogger(goose.NopLogger())
-	database.ConnectDB()
+	config.ConnectDB()
 	database.Migrate()
 
 	// i18n 初始化

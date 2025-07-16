@@ -1,7 +1,7 @@
 package migrations
 
 import (
-	"app/internal/database"
+	"app/config"
 	"app/internal/model"
 	"context"
 	"database/sql"
@@ -14,9 +14,9 @@ func init() {
 }
 
 func upCreateUser(ctx context.Context, tx *sql.Tx) error {
-	return database.DB_MIGRATOR.CreateTable(&model.User{})
+	return config.DB_MIGRATOR.CreateTable(&model.User{})
 }
 
 func downCreateUser(ctx context.Context, tx *sql.Tx) error {
-	return database.DB_MIGRATOR.DropTable(&model.User{})
+	return config.DB_MIGRATOR.DropTable(&model.User{})
 }

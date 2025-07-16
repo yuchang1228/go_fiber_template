@@ -1,7 +1,7 @@
 package router
 
 import (
-	"app/internal/database"
+	"app/config"
 	"app/internal/handler"
 	"app/internal/repository"
 	"app/internal/service"
@@ -10,7 +10,7 @@ import (
 )
 
 func UserRouter(api fiber.Router) {
-	userRepository := repository.NewUserRepository(database.GORM_DB)
+	userRepository := repository.NewUserRepository(config.GORM_DB)
 	userService := service.NewUserService(userRepository)
 	userReportService := service.NewUserReportService(userRepository)
 	userHandler := handler.NewUserHandler(userService, userReportService)
