@@ -11,6 +11,12 @@ services:
     command: air cmd/main.go -b 0.0.0.0
     depends_on:
       - mysql
+      - redis
+      - rabbitmq
+      - elasticsearch
+      - logstash
+      - kibana
+      - filebeat
     networks:
       - fiber
   mysql:
@@ -25,7 +31,15 @@ services:
     ports:
       - ${DB_PORT:-3306}:${DB_PORT}
     volumes:
-      - mysql-db:/var/lib/mysql
+      - fiber-mysql:/var/lib/mysql
+    networks:
+      - fiber
+  redis:
+    image: redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - fiber-redis:/data
     networks:
       - fiber
   rabbitmq:
@@ -39,7 +53,7 @@ services:
     image: elasticsearch:9.0.2
     volumes:
       - ./resource/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,Z
-      - elasticsearch:/usr/share/elasticsearch/data:Z
+      - fiber-elasticsearch:/usr/share/elasticsearch/data:Z
     environment:
       - discovery.type=single-node
     networks:
@@ -74,8 +88,9 @@ services:
     depends_on:
       - elasticsearch
 volumes:
-  mysql-db:
-  elasticsearch:
+  fiber-mysql:
+  fiber-redis:
+  fiber-elasticsearch:
 
 networks:
   fiber:

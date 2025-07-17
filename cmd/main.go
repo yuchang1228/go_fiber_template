@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/gofiber/contrib/fiberzap"
 	"github.com/gofiber/fiber/v2/log"
-	"go.uber.org/zap"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 
 	"app/config"
 	"app/pkg/i18n"
+	"app/util"
 
 	_ "app/docs"
 	"app/internal/database"
@@ -24,21 +24,6 @@ import (
 	// "github.com/gofiber/fiber/v2/middleware/cors"
 )
 
-const logPath = "./logs/fiber.log"
-
-var logger *zap.Logger
-
-func setupLog() {
-	if _, err := os.Stat("logs"); os.IsNotExist(err) {
-		os.Mkdir("logs", os.ModePerm)
-	}
-
-	os.OpenFile(logPath, os.O_RDONLY|os.O_CREATE, 0666)
-	c := zap.NewProductionConfig()
-	c.OutputPaths = []string{"stdout", logPath}
-	logger, _ = c.Build()
-}
-
 // @title Fiber Example API
 // @version 1.0
 // @description This is a sample swagger for Fiber
@@ -51,8 +36,8 @@ func main() {
 	loc, _ := time.LoadLocation(config.Config("TIMEZONE"))
 	time.Local = loc
 
-	setupLog()
-	defer logger.Sync()
+	util.SetupLog()
+	defer util.Logger.Sync()
 
 	app := fiber.New(fiber.Config{
 		Prefork:       true,
@@ -63,8 +48,10 @@ func main() {
 	})
 
 	app.Use(fiberzap.New(fiberzap.Config{
-		Logger: logger,
+		Logger: util.Logger,
 	}))
+
+	app.Use(recover.New())
 
 	// app.Use(cors.New())
 
