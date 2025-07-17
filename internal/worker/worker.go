@@ -2,7 +2,7 @@ package main
 
 import (
 	"app/config"
-	"app/internal/job"
+	"app/internal/jobs"
 	"fmt"
 	"io"
 	"log"
@@ -13,8 +13,8 @@ import (
 )
 
 var jobRegistry = map[string]func([]byte) error{
-	"Test":       job.Test,
-	"HelloWorld": job.HelloWorld,
+	"Test":       jobs.Test,
+	"HelloWorld": jobs.HelloWorld,
 }
 
 var conn *amqp.Connection
@@ -104,19 +104,19 @@ func main() {
 
 	go func() {
 		for d := range msgs {
-			fmt.Printf("🟢 Received job [%s]: %s\n", d.RoutingKey, d.Body)
+			fmt.Printf("🟢 Received jobs [%s]: %s\n", d.RoutingKey, d.Body)
 
-			if handler, ok := jobRegistry[d.RoutingKey]; ok {
-				err := handler(d.Body)
+			if handlers, ok := jobRegistry[d.RoutingKey]; ok {
+				err := handlers(d.Body)
 				if err != nil {
-					log.Printf("Job %s failed: %v\n", d.RoutingKey, err)
+					log.Printf("jobs %s failed: %v\n", d.RoutingKey, err)
 					d.Nack(false, false) // Reject the message and do not requeue
 				}
 				log.Printf("Received a message: %s", d.Body)
 				log.Printf("Done")
 				d.Ack(false)
 			} else {
-				log.Println("Unknown job action:", d.RoutingKey)
+				log.Println("Unknown jobs action:", d.RoutingKey)
 				d.Nack(false, false) // Reject the message and do not requeue
 			}
 		}

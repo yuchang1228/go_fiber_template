@@ -19,7 +19,7 @@ func ConnectDB() {
 	p := Config("DB_PORT")
 	port, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
-		panic("failed to parse database port")
+		panic("failed to parse databases port")
 	}
 
 	dsn := fmt.Sprintf(
@@ -34,12 +34,12 @@ func ConnectDB() {
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{TranslateError: true})
 
 	if err != nil {
-		panic("failed to connect database")
+		panic("failed to connect databases")
 	}
 
 	GORM_DB = db
 	SQL_DB, _ = db.DB()
 	DB_MIGRATOR = db.Migrator()
 
-	log.Info("Connected to database successfully")
+	log.Info("Connected to databases successfully")
 }

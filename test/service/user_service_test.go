@@ -1,8 +1,8 @@
 package test
 
 import (
-	"app/internal/model"
-	"app/internal/service"
+	"app/internal/models"
+	"app/internal/services"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,28 +14,28 @@ type MockUserRepository struct {
 	mock.Mock
 }
 
-func (m *MockUserRepository) Create(user *model.User) error {
+func (m *MockUserRepository) Create(user *models.User) error {
 	args := m.Called(user)
 	return args.Error(0)
 }
 
-func (m *MockUserRepository) GetByID(id uint) (*model.User, error) {
+func (m *MockUserRepository) GetByID(id uint) (*models.User, error) {
 	args := m.Called(id)
-	if user, ok := args.Get(0).(*model.User); ok {
+	if user, ok := args.Get(0).(*models.User); ok {
 		return user, args.Error(1)
 	}
 	return nil, args.Error(1)
 }
 
-func (m *MockUserRepository) GetAll() (*[]model.User, error) {
+func (m *MockUserRepository) GetAll() (*[]models.User, error) {
 	args := m.Called()
-	if users, ok := args.Get(0).(*[]model.User); ok {
+	if users, ok := args.Get(0).(*[]models.User); ok {
 		return users, args.Error(1)
 	}
 	return nil, args.Error(1)
 }
 
-func (m *MockUserRepository) Update(user *model.User) error {
+func (m *MockUserRepository) Update(user *models.User) error {
 	args := m.Called(user)
 	return args.Error(0)
 }
@@ -45,9 +45,9 @@ func (m *MockUserRepository) Delete(id uint) error {
 	return args.Error(0)
 }
 
-func (m *MockUserRepository) GetByUserName(username string) (*model.User, error) {
+func (m *MockUserRepository) GetByUserName(username string) (*models.User, error) {
 	args := m.Called(username)
-	if user, ok := args.Get(0).(*model.User); ok {
+	if user, ok := args.Get(0).(*models.User); ok {
 		return user, args.Error(1)
 	}
 	return nil, args.Error(1)
@@ -55,9 +55,9 @@ func (m *MockUserRepository) GetByUserName(username string) (*model.User, error)
 
 func TestUserService_Create(t *testing.T) {
 	mockUserRepository := new(MockUserRepository)
-	userService := service.NewUserService(mockUserRepository)
+	userService := services.NewUserService(mockUserRepository)
 
-	user := &model.User{
+	user := &models.User{
 		Model:    gorm.Model{ID: 1},
 		Username: "testuser",
 	}
@@ -71,9 +71,9 @@ func TestUserService_Create(t *testing.T) {
 
 func TestUserService_GetByID(t *testing.T) {
 	mockUserRepository := new(MockUserRepository)
-	userService := service.NewUserService(mockUserRepository)
+	userService := services.NewUserService(mockUserRepository)
 
-	user := &model.User{
+	user := &models.User{
 		Model:    gorm.Model{ID: 1},
 		Username: "testuser",
 	}
@@ -88,9 +88,9 @@ func TestUserService_GetByID(t *testing.T) {
 
 func TestUserService_GetAll(t *testing.T) {
 	mockUserRepository := new(MockUserRepository)
-	userService := service.NewUserService(mockUserRepository)
+	userService := services.NewUserService(mockUserRepository)
 
-	users := []model.User{
+	users := []models.User{
 		{Model: gorm.Model{ID: 1}, Username: "user1"},
 		{Model: gorm.Model{ID: 2}, Username: "user2"},
 	}
@@ -105,9 +105,9 @@ func TestUserService_GetAll(t *testing.T) {
 
 func TestUserService_Update(t *testing.T) {
 	mockUserRepository := new(MockUserRepository)
-	userService := service.NewUserService(mockUserRepository)
+	userService := services.NewUserService(mockUserRepository)
 
-	user := &model.User{
+	user := &models.User{
 		Model:    gorm.Model{ID: 1},
 		Username: "testuser",
 	}
@@ -121,7 +121,7 @@ func TestUserService_Update(t *testing.T) {
 
 func TestUserService_Delete(t *testing.T) {
 	mockUserRepository := new(MockUserRepository)
-	userService := service.NewUserService(mockUserRepository)
+	userService := services.NewUserService(mockUserRepository)
 
 	mockUserRepository.On("Delete", uint(1)).Return(nil)
 
