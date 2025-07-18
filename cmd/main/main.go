@@ -15,6 +15,7 @@ import (
 	_ "app/docs"
 	"app/internal/databases"
 	_ "app/internal/databases/migrations"
+	_ "app/internal/handlers"
 	"app/internal/middlewares"
 	"app/internal/routes"
 

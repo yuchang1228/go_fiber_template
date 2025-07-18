@@ -63,7 +63,7 @@ type User struct {
 // @Success 200 {object} responses.SuccessResponseHTTP{data=[]responses.UserResponse}
 // @Failure 401 {object} responses.ErrorResponseHTTP{}
 // @Failure 500 {object} responses.ErrorResponseHTTP{}
-// @routes /user [get]
+// @Router /user [get]
 // @Security Bearer
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 	users, err := h.userService.GetAll()
@@ -98,7 +98,7 @@ func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 // @Success 200 {object} responses.SuccessResponseHTTP{data=responses.UserResponse}
 // @Failure 401 {object} responses.ErrorResponseHTTP{}
 // @Failure 500 {object} responses.ErrorResponseHTTP{}
-// @routes /user/{id} [get]
+// @Router /user/{id} [get]
 // @Security Bearer
 func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -136,7 +136,7 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 // @Success 200 {object} responses.SuccessResponseHTTP{data=responses.UserResponse}
 // @Success 400 {object} responses.ErrorResponseHTTP{}
 // @Failure 500 {object} responses.ErrorResponseHTTP{}
-// @routes /user [post]
+// @Router /user [post]
 // @Security Bearer
 func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 	input := new(requests.CreateUser)
@@ -189,7 +189,7 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 // @Success 400 {object} responses.ErrorResponseHTTP{}
 // @Failure 401 {object} responses.ErrorResponseHTTP{}
 // @Failure 500 {object} responses.ErrorResponseHTTP{}
-// @routes /user/{id} [patch]
+// @Router /user/{id} [patch]
 // @Security Bearer
 func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	var input requests.UpdateUser
@@ -239,7 +239,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 // @Success 400 {object} responses.ErrorResponseHTTP{}
 // @Failure 401 {object} responses.ErrorResponseHTTP{}
 // @Failure 500 {object} responses.ErrorResponseHTTP{}
-// @routes /user/{id} [delete]
+// @Router /user/{id} [delete]
 // @Security Bearer
 func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -263,7 +263,7 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 // @Success 200 {object} responses.SuccessResponseHTTP{data=nil}
 // @Failure 401 {object} responses.ErrorResponseHTTP{}
 // @Failure 500 {object} responses.ErrorResponseHTTP{}
-// @routes /user/report [get]
+// @Router /user/report [get]
 // @Security Bearer
 func (h *UserHandler) UserReport(c *fiber.Ctx) error {
 	users, err := h.userService.GetAll()

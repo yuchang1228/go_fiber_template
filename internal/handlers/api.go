@@ -11,9 +11,9 @@ import (
 // @Summary Health check
 // @Description Health check
 // @Tags app
-// @Success 200 {object} response.SuccessResponseHTTP{data=string}
-// @Failure 500 {object} response.ErrorResponseHTTP{}
-// @routes /health [get]
+// @Success 200 {object} responses.SuccessResponseHTTP{data=string}
+// @Failure 500 {object} responses.ErrorResponseHTTP{}
+// @Router /health [get]
 func Health(c *fiber.Ctx) error {
 
 	_, err := tasks.SendAddTask()

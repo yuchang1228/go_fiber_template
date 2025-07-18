@@ -28,7 +28,7 @@ func NewAuthHandler(authService services.IAuthService) *AuthHandler {
 // @Failure 400 {object} responses.ErrorResponseHTTP{}
 // @Failure 401 {object} responses.ErrorResponseHTTP{}
 // @Failure 500 {object} responses.ErrorResponseHTTP{}
-// @routes /auth/login [post]
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	input := new(requests.Login)
@@ -71,7 +71,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 // @Success 200 {object} responses.SuccessResponseHTTP{data=responses.TokenResponse}
 // @Failure 401 {object} responses.ErrorResponseHTTP{}
 // @Failure 500 {object} responses.ErrorResponseHTTP{}
-// @routes /auth/refresh [post]
+// @Router /auth/refresh [post]
 func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 	refreshToken := c.Cookies("refreshToken")
 

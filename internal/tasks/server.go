@@ -3,8 +3,6 @@ package tasks
 import (
 	"github.com/RichardKnop/machinery/v2"
 	"github.com/RichardKnop/machinery/v2/config"
-	"github.com/RichardKnop/machinery/v2/example/tracers"
-	"github.com/RichardKnop/machinery/v2/log"
 	"github.com/RichardKnop/machinery/v2/tasks"
 
 	redisbackend "github.com/RichardKnop/machinery/v2/backends/redis"
@@ -42,12 +40,6 @@ func StartServer() (*machinery.Server, error) {
 }
 
 func SendAddTask() (*result.AsyncResult, error) {
-	cleanup, err := tracers.SetupTracer("sender")
-	if err != nil {
-		log.FATAL.Fatalln("Unable to instantiate a tracer:", err)
-	}
-	defer cleanup()
-
 	server, err := StartServer()
 	if err != nil {
 		return nil, err

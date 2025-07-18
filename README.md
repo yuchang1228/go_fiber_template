@@ -25,7 +25,7 @@
         -v "$(pwd):/usr/src/some-api" \
         -w /usr/src/some-api \
         go-fiber:latest \
-        swag init -g cmd/main.go -q
+        swag init -g cmd/main/main.go -q
     ```
 4. Start container
     ```bash

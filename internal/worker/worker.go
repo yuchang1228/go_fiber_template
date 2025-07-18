@@ -4,18 +4,10 @@ import (
 	"app/internal/tasks"
 
 	"github.com/RichardKnop/machinery/v2/log"
-
-	"github.com/RichardKnop/machinery/v2/example/tracers"
 )
 
 func main() {
 	consumerTag := "machinery_worker"
-
-	cleanup, err := tracers.SetupTracer(consumerTag)
-	if err != nil {
-		log.FATAL.Fatalln("Unable to instantiate a tracer:", err)
-	}
-	defer cleanup()
 
 	server, err := tasks.StartServer()
 	if err != nil {
