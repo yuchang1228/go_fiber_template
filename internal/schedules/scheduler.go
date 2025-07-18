@@ -1,7 +1,7 @@
 package main
 
 import (
-	"app/internal/jobs"
+	"app/internal/tasks"
 	"fmt"
 	"io"
 	"log"
@@ -36,9 +36,7 @@ func main() {
 	j, err := s.NewJob(
 		gocron.CronJob("*/5 * * * * *", true),
 		gocron.NewTask(
-			jobs.PublishJob,
-			"Test",
-			"Hello World",
+			tasks.SendAddTask,
 		),
 	)
 
