@@ -10,13 +10,13 @@ import (
 )
 
 func init() {
-	goose.AddMigrationContext(upCreateUser, downCreateUser)
+	goose.AddMigrationContext(upCreateUsersTable, downCreateUsersTable)
 }
 
-func upCreateUser(ctx context.Context, tx *sql.Tx) error {
+func upCreateUsersTable(ctx context.Context, tx *sql.Tx) error {
 	return config.DB_MIGRATOR.CreateTable(&models.User{})
 }
 
-func downCreateUser(ctx context.Context, tx *sql.Tx) error {
+func downCreateUsersTable(ctx context.Context, tx *sql.Tx) error {
 	return config.DB_MIGRATOR.DropTable(&models.User{})
 }
