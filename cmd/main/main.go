@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/contrib/fiberzap"
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/gofiber/fiber/v2/middleware/healthcheck"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
 	"app/config"
@@ -51,6 +52,7 @@ func main() {
 	app.Use(fiberzap.New(fiberzap.Config{
 		Logger: util.Logger,
 	}))
+	app.Use(healthcheck.New())
 
 	app.Use(recover.New())
 
